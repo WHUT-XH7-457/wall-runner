@@ -437,6 +437,7 @@ public class Renderer implements IRenderer {
             }
 
             // 名字
+            gc.setTextAlign(TextAlignment.CENTER);
             gc.setFill(Color.web(isPaused ? "rgba(255,255,255,0.6)" : "white"));
             gc.setFont(Font.font("Segoe UI Emoji", 11));
             String nameText = p.getName() != null ? p.getName() : "玩家";
@@ -558,7 +559,8 @@ public class Renderer implements IRenderer {
                 new double[]{bubbleY + bubbleH + 2, bubbleY + bubbleH + 2, bubbleY + bubbleH + 2 + arrowSize}, 3);
         }
 
-        // 绘制文本
+        // 绘制文本（必须显式设置左对齐，避免继承其他绘制状态的CENTER对齐导致错位）
+        gc.setTextAlign(TextAlignment.LEFT);
         gc.setFill(Color.web("white"));
         gc.fillText(text, bubbleX + paddingX, bubbleY + bubbleH - 6);
 
@@ -577,9 +579,10 @@ public class Renderer implements IRenderer {
 
         int heightVal = (int) (-me.getY() / 10);
         String heightText = "高度: " + heightVal;
-        if (me.getJoinOffsetY() != 0 && me.getJoinOffsetY() != 300) {
-            int offsetVal = (int) (me.getJoinOffsetY() / 10);
-            heightText += " (初始 " + offsetVal + ")";
+        if (me.getJoinOffsetY() != 0) {
+            // 开始高度使用与高度显示一致的坐标系符号（向上为正）
+            int offsetVal = (int) (-me.getJoinOffsetY() / 10);
+            heightText += " (开始于 " + offsetVal + ")";
         }
         gc.fillText(heightText, 15, 50);
 
@@ -642,6 +645,7 @@ public class Renderer implements IRenderer {
                         if (!collected) gc.strokeOval(cx - 9, cy - 9, 18, 18);
                     }
                 }
+                gc.setTextAlign(TextAlignment.LEFT);
                 gc.setFill(Color.web(collected ? "#fff" : "#666"));
                 gc.setFont(Font.font("Segoe UI Emoji", 10));
                 gc.fillText(label, cx - 3, cy + 4);
@@ -668,6 +672,7 @@ public class Renderer implements IRenderer {
         }
 
         if (me.isSpectator()) {
+            gc.setTextAlign(TextAlignment.CENTER);
             gc.setFill(Color.web("rgba(255,255,255,0.8)"));
             gc.setFont(Font.font("Segoe UI Emoji", 14));
             gc.fillText("[旁观模式] 按跳跃切换视角", GameConstants.CANVAS_WIDTH / 2, GameConstants.CANVAS_HEIGHT - 20);
@@ -692,6 +697,7 @@ public class Renderer implements IRenderer {
     }
 
     private void drawMenuOverlay(GameState state, String mode) {
+        gc.setTextAlign(TextAlignment.CENTER);
         gc.setFill(Color.web("rgba(0,0,0,0.7)"));
         gc.fillRect(0, 0, GameConstants.CANVAS_WIDTH, GameConstants.CANVAS_HEIGHT);
         gc.setFill(Color.web("#4ecca3"));
@@ -710,6 +716,7 @@ public class Renderer implements IRenderer {
     }
 
     private void drawGameOverOverlay(GameState state, boolean iAmDead, String mode) {
+        gc.setTextAlign(TextAlignment.CENTER);
         gc.setFill(Color.web("rgba(0,0,0,0.7)"));
         gc.fillRect(0, 0, GameConstants.CANVAS_WIDTH, GameConstants.CANVAS_HEIGHT);
         gc.setFill(Color.web("#ff6b6b"));

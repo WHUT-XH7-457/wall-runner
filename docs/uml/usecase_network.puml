@@ -1,6 +1,7 @@
 @startuml
 left to right direction
 skinparam packageStyle rectangle
+skinparam linetype ortho
 
 title WallRunner v3.0 — 联机游戏用例图
 

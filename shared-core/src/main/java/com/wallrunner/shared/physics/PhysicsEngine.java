@@ -105,7 +105,7 @@ public class PhysicsEngine implements IPhysicsEngine {
         state.setDifficultyAccumulator(0.0);
 
         int i = 0;
-        double initCameraY = 300 - CANVAS_HEIGHT * CAMERA_OFFSET_RATIO;
+        double initCameraY = 0 - CANVAS_HEIGHT * CAMERA_OFFSET_RATIO;
         for (Player p : state.getPlayers().values()) {
             resetPlayer(p, i, initCameraY);
             i++;
@@ -123,16 +123,17 @@ public class PhysicsEngine implements IPhysicsEngine {
         p.setActive(true);
         p.setSide((index % 2 == 0) ? "left" : "right");
         p.setX("left".equals(p.getSide()) ? WALL_WIDTH : CANVAS_WIDTH - WALL_WIDTH - PLAYER_SIZE);
-        p.setY(300);
+        p.setY(0);
         p.setJumping(false);
         p.setVy(0);
         p.setScore(0);
+        p.setBaseScore(0);
         p.setLives(MAX_LIVES);
         p.setPaused(false);
         p.setBlocked(false);
         p.setCameraY(initCameraY);
         p.setCameraTargetY(initCameraY);
-        p.setJoinOffsetY(300);
+        p.setJoinOffsetY(0);
         p.setTimeBonusScore(0);
         p.setSpectator(false);
         p.setKnockedBack(false);

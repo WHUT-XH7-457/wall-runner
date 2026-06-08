@@ -43,7 +43,7 @@ public class DeathSystem implements IDeathSystem {
     private void respawnPlayer(GameState state, Player player) {
         double fallbackY = 0;
         for (Player p : state.getPlayers().values()) {
-            if (p.isActive() && p.getY() < fallbackY) {
+            if (p.isActive() && p.getY() > fallbackY) {
                 fallbackY = p.getY();
             }
         }
@@ -60,6 +60,9 @@ public class DeathSystem implements IDeathSystem {
         player.setInvincible(true);
         player.setInvincibleTimer(2.0);
         player.setSpectator(false);
+        player.setBaseScore(player.getScore());
+        player.setTimeBonusScore(0);
+        player.setCoinsCollected(0);
         double spawnCamY = spawnY - CANVAS_HEIGHT * CAMERA_OFFSET_RATIO;
         player.setCameraY(spawnCamY);
         player.setCameraTargetY(spawnCamY);

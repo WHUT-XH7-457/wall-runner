@@ -43,6 +43,8 @@ public class Player implements IEntity {
     private boolean paused = false;
     private double joinOffsetY = 0;
     private int timeBonusScore = 0;
+    private int baseScore = 0;
+    private int offlinePreservedScore = 0;  // 离线时保留的分数，与高度基准分离存储
     private int highScore = 0;
 
     /* ============================================================
@@ -167,6 +169,12 @@ public class Player implements IEntity {
 
     public int getTimeBonusScore() { return timeBonusScore; }
     public void setTimeBonusScore(int timeBonusScore) { this.timeBonusScore = timeBonusScore; }
+
+    public int getBaseScore() { return baseScore; }
+    public void setBaseScore(int baseScore) { this.baseScore = baseScore; }
+
+    public int getOfflinePreservedScore() { return offlinePreservedScore; }
+    public void setOfflinePreservedScore(int offlinePreservedScore) { this.offlinePreservedScore = offlinePreservedScore; }
 
     public int getHighScore() { return highScore; }
     public void setHighScore(int highScore) { this.highScore = highScore; }

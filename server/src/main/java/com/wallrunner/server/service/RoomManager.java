@@ -64,15 +64,22 @@ public class RoomManager implements IRoomManager {
             existing.setName(player.getName());
             existing.setFillColor(player.getFillColor());
             existing.setStrokeColor(player.getStrokeColor());
-            // 如果未死亡，将其位置改为最落后玩家后方30m
+            // 如果未死亡，将其位置改为最落后玩家后方30m，并将离线前分数锁定到baseScore
             if (existing.isActive()) {
                 double fallbackY = 0;
                 for (Player p : state.getPlayers().values()) {
-                    if (p.isActive() && p.getY() < fallbackY) {
+                    if (p.isActive() && p.getY() > fallbackY) {
                         fallbackY = p.getY();
                     }
                 }
                 double spawnY = fallbackY + 300;
+                // 将离线前保留的分数转为baseScore，实现分数与高度基准的分离存储
+                if (existing.getOfflinePreservedScore() > 0) {
+                    existing.setBaseScore(existing.getOfflinePreservedScore());
+                    existing.setOfflinePreservedScore(0);
+                }
+                existing.setTimeBonusScore(0);
+                existing.setCoinsCollected(0);
                 existing.setY(spawnY);
                 existing.setJoinOffsetY(spawnY);
                 existing.setCameraY(spawnY - GameConstants.CANVAS_HEIGHT * GameConstants.CAMERA_OFFSET_RATIO);
@@ -93,6 +100,8 @@ public class RoomManager implements IRoomManager {
             p.setDisconnected(true);
             p.setOfflineTime(now);
             p.setPaused(true); // 离线玩家视为暂停状态（无碰撞）
+            // 保留离线前的分数，避免高度基准变化后分数丢失
+            p.setOfflinePreservedScore(p.getScore());
         }
         String hostId = roomHosts.get(roomId);
         if (hostId != null && hostId.equals(playerId)) {

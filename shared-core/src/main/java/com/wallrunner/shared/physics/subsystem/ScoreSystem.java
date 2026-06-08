@@ -14,7 +14,7 @@ public class ScoreSystem implements IScoreCalculator {
     public void recalculateScores(List<Player> activePlayers) {
         for (Player p : activePlayers) {
             int heightScore = (int) ((p.getJoinOffsetY() - p.getY()) / 10.0);
-            int total = Math.max(0, heightScore + p.getTimeBonusScore() + p.getCoinsCollected());
+            int total = p.getBaseScore() + Math.max(0, heightScore) + p.getTimeBonusScore() + p.getCoinsCollected();
             p.setScore(total);
         }
     }

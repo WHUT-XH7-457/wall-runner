@@ -119,6 +119,8 @@ public class StateManager implements IStateManager {
             local.setY(local.getY() + (auth.getY() - local.getY()) * 0.15);
         }
         local.setScore(auth.getScore());
+        local.setBaseScore(auth.getBaseScore());
+        local.setOfflinePreservedScore(auth.getOfflinePreservedScore());
         local.setLives(auth.getLives());
         local.setActive(auth.isActive());
         local.setPaused(auth.isPaused());
@@ -158,6 +160,8 @@ public class StateManager implements IStateManager {
         target.setSide(source.getSide());
         target.setJumping(source.isJumping());
         target.setScore(source.getScore());
+        target.setBaseScore(source.getBaseScore());
+        target.setOfflinePreservedScore(source.getOfflinePreservedScore());
         target.setLives(source.getLives());
         target.setActive(source.isActive());
         target.setPaused(source.isPaused());
@@ -202,7 +206,7 @@ public class StateManager implements IStateManager {
         c.setVy(p.getVy());
         c.setWidth(p.getWidth()); c.setHeight(p.getHeight());
         c.setActive(p.isActive());
-        c.setScore(p.getScore()); c.setLives(p.getLives());
+        c.setScore(p.getScore()); c.setBaseScore(p.getBaseScore()); c.setOfflinePreservedScore(p.getOfflinePreservedScore()); c.setLives(p.getLives());
         c.setBlocked(p.isBlocked());
         c.setCameraY(p.getCameraY()); c.setCameraTargetY(p.getCameraTargetY());
         c.setPaused(p.isPaused());

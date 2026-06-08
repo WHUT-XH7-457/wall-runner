@@ -559,7 +559,7 @@ public class GameController {
         double fallbackY = 0;
         if (state != null) {
             for (Player p : state.getPlayers().values()) {
-                if (p.isActive() && p.getY() < fallbackY) {
+                if (p.isActive() && p.getY() > fallbackY) {
                     fallbackY = p.getY();
                 }
             }
@@ -569,7 +569,9 @@ public class GameController {
             me.setActive(true);
             me.setLives(GameConstants.MAX_LIVES);
             me.setScore(0);
+            me.setBaseScore(0);
             me.setTimeBonusScore(0);
+            me.setCoinsCollected(0);
             me.setJoinOffsetY(spawnY);
             me.setY(spawnY);
             me.setX("left".equals(me.getSide()) ? GameConstants.WALL_WIDTH + 5 : GameConstants.CANVAS_WIDTH - GameConstants.WALL_WIDTH - GameConstants.PLAYER_SIZE - 5);
@@ -580,16 +582,12 @@ public class GameController {
             me.setInvincibleTimer(2.0);
             me.setSpectator(false);
             me.setKnockedBack(false);
+            me.setJumping(false);
             me.setRotationAngle(0);
             me.setTargetRotation(0);
             double spawnCamY = spawnY - GameConstants.CANVAS_HEIGHT * GameConstants.CAMERA_OFFSET_RATIO;
             me.setCameraY(spawnCamY);
             me.setCameraTargetY(spawnCamY);
-        }
-        if (state != null) {
-            double spawnCamY = spawnY - GameConstants.CANVAS_HEIGHT * GameConstants.CAMERA_OFFSET_RATIO;
-            state.setCameraY(spawnCamY);
-            state.setCameraTargetY(spawnCamY);
         }
         hideDeathUI();
         loop.start();
