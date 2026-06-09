@@ -1,7 +1,7 @@
 @startuml
 skinparam classAttributeIconSize 0
 
-title WallRunner v3.0 — shared-core 实体层类图
+title WallRunner v3.0 — shared-core 实体层类图（已修正）
 
 package "com.wallrunner.shared.entity" {
     interface IEntity {
@@ -25,6 +25,13 @@ package "com.wallrunner.shared.entity" {
         -invincible: boolean
         -knockedBack: boolean
         -spectator: boolean
+        -blocked: boolean
+        -paused: boolean
+        -returningToWall: boolean
+        -effects: List<String>
+        -skills: List<String>
+        -collectibleType: String
+        -collectibleCount: int
         +getId(): String
         +setId(String): void
         +isActive(): boolean
@@ -56,12 +63,14 @@ package "com.wallrunner.shared.entity" {
     }
 
     class GameState {
-        -players: Map<String, Player>
-        -obstacles: List<Obstacle>
-        -collectibles: List<Collectible>
+        -players: Map<String, Player> {ConcurrentHashMap}
+        -obstacles: List<Obstacle> {CopyOnWriteArrayList}
+        -collectibles: List<Collectible> {CopyOnWriteArrayList}
+        -activeEffects: List<String> {CopyOnWriteArrayList}
         -phase: String
         -cameraY: double
         -difficultyLevel: int
+        -frames: int
         +getPlayers(): Map<String, Player>
         +setPlayers(Map): void
         +getObstacles(): List<Obstacle>
@@ -79,10 +88,17 @@ GameState "1" *-- "0..*" Collectible : contains
 note right of Player
   纯POJO，无业务逻辑
   可被Jackson序列化
+  状态通过布尔字段隐式表达：
+  jumping, knockedBack, returningToWall,
+  active, spectator, blocked, paused
 end note
 
 note right of GameState
   聚合根（Aggregate Root）
-  非线程安全
+  线程安全集合：
+  - players: ConcurrentHashMap
+  - obstacles: CopyOnWriteArrayList
+  - collectibles: CopyOnWriteArrayList
+  - activeEffects: CopyOnWriteArrayList
 end note
 @enduml

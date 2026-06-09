@@ -4,6 +4,8 @@ import com.wallrunner.shared.entity.GameState;
 import com.wallrunner.shared.entity.Player;
 import com.wallrunner.shared.physics.GamePhysics;
 
+import org.springframework.stereotype.Service;
+
 import java.util.Map;
 import java.util.prefs.Preferences;
 
@@ -15,16 +17,14 @@ import java.util.prefs.Preferences;
  * - reconcile 同步权威状态中的所有玩家（添加缺失、更新已有、移除离线）。
  * - 本地玩家使用平滑插值校正，避免画面跳变；其他玩家直接覆盖。
  */
+@Service
 public class StateManager implements IStateManager {
-
-    private static final StateManager INSTANCE = new StateManager();
-    public static StateManager getInstance() { return INSTANCE; }
 
     private GameState state = new GameState();
     private final Preferences prefs = Preferences.userNodeForPackage(StateManager.class);
     private String localPlayerId = "local";
 
-    private StateManager() {}
+    public StateManager() {}
 
     public void setLocalPlayerId(String id) { this.localPlayerId = id; }
     public String getLocalPlayerId() { return localPlayerId; }

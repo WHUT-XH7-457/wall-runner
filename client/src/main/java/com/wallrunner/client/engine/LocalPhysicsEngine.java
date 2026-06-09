@@ -4,6 +4,8 @@ import com.wallrunner.shared.entity.GameState;
 import com.wallrunner.shared.entity.Player;
 import com.wallrunner.shared.physics.GamePhysics;
 
+import org.springframework.stereotype.Component;
+
 /**
  * 本地权威物理引擎封装。
  *
@@ -11,6 +13,7 @@ import com.wallrunner.shared.physics.GamePhysics;
  * 
  * UML 建模意义：ILocalPhysicsEngine 的具体实现，展示委托模式。
  */
+@Component
 public class LocalPhysicsEngine implements ILocalPhysicsEngine {
 
     @Override
@@ -43,5 +46,10 @@ public class LocalPhysicsEngine implements ILocalPhysicsEngine {
     @Override
     public void initJoiningPlayer(GameState state, Player player) {
         GamePhysics.initJoiningPlayer(state, player);
+    }
+
+    @Override
+    public void respawnPlayer(GameState state, Player player) {
+        GamePhysics.respawnPlayer(state, player);
     }
 }

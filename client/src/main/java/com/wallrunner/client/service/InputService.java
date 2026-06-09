@@ -1,5 +1,7 @@
 package com.wallrunner.client.service;
 
+import org.springframework.stereotype.Component;
+
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 
@@ -16,6 +18,7 @@ import java.util.function.Consumer;
  * - 支持多键绑定同一行为。
  * - 保留触屏/鼠标点击跳跃。
  */
+@Component
 public class InputService implements IInputHandler {
 
     private final Set<KeyCode> pressed = new HashSet<>();

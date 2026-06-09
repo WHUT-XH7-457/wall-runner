@@ -15,4 +15,5 @@ public interface ILocalPhysicsEngine {
     void startGame(GameState state);
     void initState(GameState state);
     void initJoiningPlayer(GameState state, Player player);
+    void respawnPlayer(GameState state, Player player);
 }

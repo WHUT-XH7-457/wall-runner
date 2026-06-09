@@ -1,6 +1,6 @@
 @startuml
 
-title WallRunner v3.0 — 游戏阶段状态图
+title WallRunner v3.0 — 游戏阶段状态图（已修正：与代码一致）
 
 [*] --> Menu : 启动应用
 Menu --> Playing : 玩家点击开始
@@ -11,24 +11,37 @@ GameOver --> Menu : 返回主菜单
 GameOver --> Playing : 重新开始
 Menu --> [*] : 退出应用
 
-state Playing {
-    [*] --> Normal
-    Normal --> DifficultyUp : 高度达到阈值
-    DifficultyUp --> Normal : 难度已提升
-    Normal --> CollectibleSpawn : 生成收集物
-    CollectibleSpawn --> Normal : 收集物已生成
-}
-
-state GameOver {
-    [*] --> ShowLeaderboard
-    ShowLeaderboard --> WaitRestart : 显示排行榜
-    WaitRestart --> [*] : 玩家选择
-}
+note right of Menu
+  代码实现：GameState.phase = "menu"
+  Player.paused = false
+end note
 
 note right of Playing
-  内部子状态：
-  - Normal: 正常游戏
-  - DifficultyUp: 难度递增
-  - CollectibleSpawn: 收集物生成
+  代码实现：GameState.phase = "playing"
+  内部逻辑由 PhysicsEngine.update() 调度：
+  - 难度递增：DifficultyManager.updateDifficulty()
+  - 收集物生成：CollectibleManager.updateCollectibles()
+  非显式子状态机，通过辅助字段控制
+end note
+
+note right of Paused
+  代码实现：Player.paused = true（局部暂停）
+  GameState.phase 仍为 "playing"
+  注意：Paused 不是 phase 的值！
+end note
+
+note right of GameOver
+  代码实现：GameState.phase = "gameover"
+  由 DeathSystem.checkAllDead() 触发
+  所有玩家 active = false 时进入
+  无子状态，直接显示排行榜
+end note
+
+note bottom
+  【重要说明】代码中 GameState.phase 仅有三个字符串值：
+  "menu" / "playing" / "gameover"
+  Paused 通过 Player.paused 字段实现，非 phase 子状态。
+  难度提升和收集物生成是 PhysicsEngine.update() 中的条件逻辑，
+  非 Playing 的显式子状态机。
 end note
 @enduml

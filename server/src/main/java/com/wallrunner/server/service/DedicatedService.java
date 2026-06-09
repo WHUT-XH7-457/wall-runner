@@ -3,6 +3,7 @@ package com.wallrunner.server.service;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
@@ -27,24 +28,36 @@ public class DedicatedService implements IDedicatedService {
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final Map<String, Boolean> activeDedicated = new ConcurrentHashMap<>();
-    private static final String MAIN_ROOM_ID = "DEDICATED-MAIN";
 
-    public DedicatedService(RoomManager roomManager, SessionManager sessionManager) {
+    private final String mainRoomId;
+    private final int broadcastEveryTicks;
+    private final long pingWarningMs;
+    private final long pingOfflineMs;
+
+    public DedicatedService(RoomManager roomManager, SessionManager sessionManager,
+                            @Value("${dedicated.room-id:DEDICATED-MAIN}") String mainRoomId,
+                            @Value("${dedicated.broadcast-every-ticks:2}") int broadcastEveryTicks,
+                            @Value("${dedicated.ping-warning-ms:8000}") long pingWarningMs,
+                            @Value("${dedicated.ping-offline-ms:15000}") long pingOfflineMs) {
         this.roomManager = roomManager;
         this.sessionManager = sessionManager;
+        this.mainRoomId = mainRoomId;
+        this.broadcastEveryTicks = broadcastEveryTicks;
+        this.pingWarningMs = pingWarningMs;
+        this.pingOfflineMs = pingOfflineMs;
     }
 
     @Override
     public synchronized String getOrCreateRoom() {
-        if (!roomManager.isRoomExists(MAIN_ROOM_ID)) {
-            roomManager.createRoom(MAIN_ROOM_ID, "SERVER");
-            GameState state = roomManager.getRoom(MAIN_ROOM_ID);
+        if (!roomManager.isRoomExists(mainRoomId)) {
+            roomManager.createRoom(mainRoomId, "SERVER");
+            GameState state = roomManager.getRoom(mainRoomId);
             if (state != null) {
                 state.setPhase("menu");
             }
-            activeDedicated.put(MAIN_ROOM_ID, false);
+            activeDedicated.put(mainRoomId, false);
         }
-        return MAIN_ROOM_ID;
+        return mainRoomId;
     }
 
     @Override
@@ -86,6 +99,10 @@ public class DedicatedService implements IDedicatedService {
                 GamePhysics.startGame(state);
                 activeDedicated.put(roomId, true);
             }
+        } else if ("respawn".equals(action)) {
+            if (!p.isActive()) {
+                GamePhysics.respawnPlayer(state, p);
+            }
         } else {
             GamePhysics.handleInput(p, action);
         }
@@ -93,7 +110,7 @@ public class DedicatedService implements IDedicatedService {
 
     private final Map<String, Integer> broadcastCounters = new ConcurrentHashMap<>();
 
-    @Scheduled(fixedRate = 8)
+    @Scheduled(fixedRateString = "${dedicated.tick-ms:8}")
     @Override
     public void tick() {
         for (Map.Entry<String, Boolean> entry : activeDedicated.entrySet()) {
@@ -115,12 +132,12 @@ public class DedicatedService implements IDedicatedService {
                     continue;
                 }
                 long elapsed = now - p.getLastPingTime();
-                if (elapsed > 8000 && p.isPingAcknowledged()) {
-                    // 超过8秒未收到心跳，发送ping请求
+                if (elapsed > pingWarningMs && p.isPingAcknowledged()) {
+                    // 超过配置时间未收到心跳，发送ping请求
                     p.setPingAcknowledged(false);
                     sendPing(roomId, p.getId());
-                } else if (elapsed > 15000 && !p.isPingAcknowledged()) {
-                    // 超过15秒仍未收到回应，标记为离线
+                } else if (elapsed > pingOfflineMs && !p.isPingAcknowledged()) {
+                    // 超过配置时间仍未收到回应，标记为离线
                     p.setDisconnected(true);
                     p.setOfflineTime(now);
                     p.setPaused(true); // 离线玩家视为暂停状态（无碰撞）
@@ -130,7 +147,7 @@ public class DedicatedService implements IDedicatedService {
 
             int counter = broadcastCounters.getOrDefault(roomId, 0) + 1;
             broadcastCounters.put(roomId, counter);
-            if (counter >= 2) {
+            if (counter >= broadcastEveryTicks) {
                 broadcastCounters.put(roomId, 0);
                 broadcastState(roomId, state);
             }
@@ -160,7 +177,7 @@ public class DedicatedService implements IDedicatedService {
 
     @Override
     public GameState getGameState() {
-        return roomManager.getRoom(MAIN_ROOM_ID);
+        return roomManager.getRoom(mainRoomId);
     }
 
     private void broadcastState(String roomId, GameState state) {

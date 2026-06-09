@@ -1,20 +1,32 @@
 package com.wallrunner.shared.physics.subsystem;
 
 import com.wallrunner.shared.entity.Player;
+import com.wallrunner.shared.event.CollisionEvent;
+import com.wallrunner.shared.event.GameEventBus;
 
 import static com.wallrunner.shared.constants.GameConstants.*;
 
 /**
- * 玩家间碰撞解析器实现。
+ * 玩家间碰撞解析器实现（已修正）。
  * 
- * UML 建模意义：IPlayerCollisionResolver 的具体实现，展示策略分支。
+ * 修正内容：
+ * 1. 添加 GameEventBus 依赖
+ * 2. 在 resolvePlayerCollision() 中发布 CollisionEvent(PLAYER_PLAYER)
+ * 
+ * UML 建模意义：IPlayerCollisionResolver 的具体实现，展示策略分支 + Observer 模式。
  */
 public class PlayerCollisionResolver implements IPlayerCollisionResolver {
 
     private final IKnockbackSystem knockbackSystem;
+    private final GameEventBus eventBus;
 
     public PlayerCollisionResolver(IKnockbackSystem knockbackSystem) {
+        this(knockbackSystem, GameEventBus.getInstance());
+    }
+
+    public PlayerCollisionResolver(IKnockbackSystem knockbackSystem, GameEventBus eventBus) {
         this.knockbackSystem = knockbackSystem;
+        this.eventBus = eventBus;
     }
 
     @Override
@@ -29,6 +41,9 @@ public class PlayerCollisionResolver implements IPlayerCollisionResolver {
         boolean bInvincible = b.isInvincible();
 
         if (aInvincible && bInvincible) return;
+
+        // 发布碰撞事件
+        eventBus.publish(new CollisionEvent("physics", a.getId(), b.getId(), CollisionEvent.CollisionType.PLAYER_PLAYER));
 
         if (aInvincible || bInvincible) {
             resolveInvincibleCollision(aInvincible ? a : b, aInvincible ? b : a);

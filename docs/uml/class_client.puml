@@ -1,7 +1,7 @@
 @startuml
 skinparam classAttributeIconSize 0
 
-title WallRunner v3.0 — 客户端服务层类图
+title WallRunner v3.0 — 客户端服务层类图（已修正）
 
 package "com.wallrunner.client.service" {
     interface IRenderer {
@@ -82,7 +82,6 @@ package "com.wallrunner.client.controller" {
         -loop: IGameLoop
         -physics: ILocalPhysicsEngine
         -predictor: IPredictor
-        +GameController()
         +GameController(IWebSocketClient, IStateManager, IRenderer,
                          IInputHandler, IGameLoop, ILocalPhysicsEngine, IPredictor)
         +initialize(): void
@@ -93,13 +92,11 @@ package "com.wallrunner.client.controller" {
     class MenuController {
         -wsService: IWebSocketClient
         -stateManager: IStateManager
-        +MenuController()
         +MenuController(IWebSocketClient, IStateManager)
     }
 
     class SettingsController {
         -ws: IWebSocketClient
-        +SettingsController()
         +SettingsController(IWebSocketClient)
     }
 }
@@ -117,7 +114,8 @@ MenuController --> IStateManager
 SettingsController --> IWebSocketClient
 
 note right of GameController
-  依赖注入构造器
-  便于Mock测试与UML建模
+  依赖注入构造器（Spring @Component）
+  仅有一个带7个参数的构造器
+  无默认构造器，由Spring容器自动装配
 end note
 @enduml

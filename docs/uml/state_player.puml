@@ -1,6 +1,6 @@
 @startuml
 
-title WallRunner v3.0 — 玩家生命周期状态图
+title WallRunner v3.0 — 玩家生命周期状态图（已修正：代码实现为字段组合）
 
 [*] --> Idle : 初始化
 Idle --> Climbing : 游戏开始
@@ -21,16 +21,52 @@ Spectating --> Climbing : 按跳跃键重生
 Dead --> Eliminated : 生命归零
 Eliminated --> [*] : 游戏结束
 
+note right of Idle
+  代码实现：Player.active = true,
+  Player.jumping = false,
+  Player.knockedBack = false
+end note
+
+note right of Climbing
+  代码实现：Player.jumping = false,
+  Player.knockedBack = false,
+  Player.returningToWall = false
+end note
+
+note right of Jumping
+  代码实现：Player.jumping = true
+end note
+
 note right of KnockedBack
-  击退阶段：
-  1. 弹开墙壁自由下落
-  2. 缓慢回归墙壁
-  3. 旋转动画恢复
+  代码实现：Player.knockedBack = true,
+  Player.returningToWall = false
+end note
+
+note right of Returning
+  代码实现：Player.knockedBack = true,
+  Player.returningToWall = true
+end note
+
+note right of Dead
+  代码实现：由 DeathSystem.applyDeath() 触发
+  lives--，若 lives > 0 则调用 respawnPlayer()
 end note
 
 note right of Spectating
-  旁观模式：
+  代码实现：Player.spectator = true,
+  Player.active = false
   摄像机跟随最靠前存活玩家
-  按跳跃键可重生
+end note
+
+note right of Eliminated
+  代码实现：Player.lives <= 0,
+  Player.active = false
+end note
+
+note bottom
+  【重要说明】本状态图为概念模型，
+  代码中未使用显式 State 模式或状态机框架。
+  所有状态通过 Player 类的布尔字段隐式表达：
+  jumping, knockedBack, returningToWall, active, spectator, blocked
 end note
 @enduml

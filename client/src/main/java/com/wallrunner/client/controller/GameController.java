@@ -7,18 +7,11 @@ import java.util.prefs.Preferences;
 import com.wallrunner.client.ClientApplication;
 import com.wallrunner.client.engine.ILocalPhysicsEngine;
 import com.wallrunner.client.engine.IPredictor;
-import com.wallrunner.client.engine.LocalPhysicsEngine;
-import com.wallrunner.client.engine.Predictor;
-import com.wallrunner.client.service.GameLoopService;
 import com.wallrunner.client.service.IGameLoop;
 import com.wallrunner.client.service.IInputHandler;
 import com.wallrunner.client.service.IRenderer;
 import com.wallrunner.client.service.IStateManager;
 import com.wallrunner.client.service.IWebSocketClient;
-import com.wallrunner.client.service.InputService;
-import com.wallrunner.client.service.Renderer;
-import com.wallrunner.client.service.StateManager;
-import com.wallrunner.client.service.WebSocketClientService;
 import com.wallrunner.shared.constants.GameConstants;
 import com.wallrunner.shared.entity.GameState;
 import com.wallrunner.shared.entity.Player;
@@ -36,6 +29,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import org.springframework.stereotype.Component;
+
 /**
  * 游戏场景主控制器。
  *
@@ -46,6 +41,7 @@ import javafx.scene.layout.VBox;
  *
  * 核心原则：所有模式均运行本地物理，网络状态仅用于校正，确保画面流畅。
  */
+@Component
 public class GameController {
 
     public enum Mode { SINGLE, DEDICATED, RELAY_HOST, RELAY_GUEST }
@@ -83,18 +79,6 @@ public class GameController {
     private final ILocalPhysicsEngine physics;
     private final IPredictor predictor;
 
-    // 默认构造器：使用具体实现（向后兼容）
-    public GameController() {
-        this(WebSocketClientService.getInstance(),
-             StateManager.getInstance(),
-             new Renderer(),
-             new InputService(),
-             new GameLoopService(),
-             new LocalPhysicsEngine(),
-             new Predictor());
-    }
-
-    // 依赖注入构造器（便于测试与UML建模）
     public GameController(IWebSocketClient ws, IStateManager sm, IRenderer renderer,
                           IInputHandler input, IGameLoop loop,
                           ILocalPhysicsEngine physics, IPredictor predictor) {
@@ -418,9 +402,16 @@ public class GameController {
                 }
                 yield false;
             }
-            case "jump"   -> { physics.handleInput(p, "jump"); yield true; }
-            case "pause"  -> { p.setPaused(true); yield true; }
-            case "resume" -> { p.setPaused(false); yield true; }
+            case "jump"    -> { physics.handleInput(p, "jump"); yield true; }
+            case "pause"   -> { p.setPaused(true); yield true; }
+            case "resume"  -> { p.setPaused(false); yield true; }
+            case "respawn" -> {
+                if (p != null && !p.isActive()) {
+                    physics.respawnPlayer(state, p);
+                    yield true;
+                }
+                yield false;
+            }
             default -> false;
         };
 
@@ -487,6 +478,7 @@ public class GameController {
         if (settingsOverlay != null && !settingsLoaded) {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/wallrunner/client/view/settings.fxml"));
+                loader.setControllerFactory(ClientApplication.getContext()::getBean);
                 Parent root = loader.load();
                 SettingsController sc = loader.getController();
                 sc.setOnClose(this::onCloseSettings);
@@ -536,11 +528,25 @@ public class GameController {
                 sm.reset();
                 spectatorTargetId = null;
                 currentMode = Mode.SINGLE;
+                paused = false;
+                initialized = false;
                 ClientApplication.switchScene("/com/wallrunner/client/view/menu.fxml");
             }
         });
     }
 
+    /**
+     * 完全死亡后重生（lives <= 0 → spectator → 手动触发）。
+     *
+     * 触发场景：
+     * - 单人模式：gameover 后点击"重新开始"。
+     * - 多人模式：死亡后按暂停键选择重生。
+     *
+     * 机制要点（与 DeathSystem.respawnPlayer 的"丢心复活"区分）：
+     * - 重置分数：score = 0, baseScore = 0，高度重新累计。
+     * - 重生位置 = 最末端活跃玩家的 Y + 300（即该玩家高度数值 -30）。
+     * - joinOffsetY 同步重置到重生位置，确保高度从该点重新开始计算。
+     */
     @FXML private void onRestart() {
         // 【修复】脱离暂停状态，确保重生后游戏继续运行
         paused = false;
@@ -555,40 +561,19 @@ public class GameController {
         if (me != null && me.getScore() > me.getHighScore()) {
             me.setHighScore(me.getScore());
         }
-        // 计算重生位置：最落后玩家后方30m（300像素）
-        double fallbackY = 0;
-        if (state != null) {
-            for (Player p : state.getPlayers().values()) {
-                if (p.isActive() && p.getY() > fallbackY) {
-                    fallbackY = p.getY();
-                }
+
+        // 多人模式下通知权威方进行重生（ Dedicated / Relay 均通过 sendInput 走服务器转发）
+        if (!isOffline()) {
+            ws.sendInput("respawn");
+        }
+
+        // 离线或主机模式下本地立即执行重生；客机则等待权威状态同步
+        if (isOffline() || isHost()) {
+            if (me != null) {
+                physics.respawnPlayer(state, me);
             }
         }
-        double spawnY = fallbackY + 300;
-        if (me != null) {
-            me.setActive(true);
-            me.setLives(GameConstants.MAX_LIVES);
-            me.setScore(0);
-            me.setBaseScore(0);
-            me.setTimeBonusScore(0);
-            me.setCoinsCollected(0);
-            me.setJoinOffsetY(spawnY);
-            me.setY(spawnY);
-            me.setX("left".equals(me.getSide()) ? GameConstants.WALL_WIDTH + 5 : GameConstants.CANVAS_WIDTH - GameConstants.WALL_WIDTH - GameConstants.PLAYER_SIZE - 5);
-            me.setVy(0);
-            me.setBlocked(false);
-            me.setPaused(false);
-            me.setInvincible(true);
-            me.setInvincibleTimer(2.0);
-            me.setSpectator(false);
-            me.setKnockedBack(false);
-            me.setJumping(false);
-            me.setRotationAngle(0);
-            me.setTargetRotation(0);
-            double spawnCamY = spawnY - GameConstants.CANVAS_HEIGHT * GameConstants.CAMERA_OFFSET_RATIO;
-            me.setCameraY(spawnCamY);
-            me.setCameraTargetY(spawnCamY);
-        }
+
         hideDeathUI();
         loop.start();
         focusCanvas();

@@ -3,7 +3,7 @@ left to right direction
 skinparam packageStyle rectangle
 skinparam linetype ortho
 
-title WallRunner v3.0 — 系统整体用例图
+title WallRunner v3.0 — 系统整体用例图（已修正）
 
 actor "玩家" as Player
 actor "房主" as Host
@@ -30,21 +30,26 @@ rectangle "墙间跑酷系统" {
     UC2 ..> UC6 : <<include>>
     UC3 ..> UC6 : <<include>>
     UC4 ..> UC6 : <<include>>
-    UC8 ..> UC5 : <<extend>>
     UC12 ..> UC2 : <<extend>>
 }
 
 Player --> UC1
 Player --> UC2
+Player --> UC5
+Player --> UC6
+Player --> UC8
 Player --> UC9
 Player --> UC10
 Player --> UC11
 Host --> UC3
 Guest --> UC4
+Guest --> UC5
+Guest --> UC6
 
 note right of UC8
   跳跃玩家撞击非跳跃玩家
   触发击退+旋转+无敌
+  （独立用例，与跳跃换墙无扩展关系）
 end note
 
 note right of UC12

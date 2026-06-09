@@ -1,41 +1,39 @@
 @startuml
 
-title WallRunner v3.0 — 死亡重生泳道图
+title WallRunner v3.0 — 死亡重生活动图（已修正：与代码一致）
 
 |游戏引擎|
 start
 :玩家Y坐标 > 死亡线;
-:DeathSystem.checkDeathLine()触发;
+:DeathSystem.checkDeathLine()检测;
+
+|DeathSystem|
+:调用 applyDeath(player);
 :lives--;
 
 if (lives <= 0?) then (是)
   :保存最高分;
-  :active = false;
-  :spectator = true;
-  :checkAllDead();
+  :player.active = false;
+  :player.spectator = true;
+  :调用 checkAllDead();
   if (所有玩家死亡?) then (是)
-    :phase = "gameover";
+    :GameState.phase = "gameover";
   else (否)
   endif
   stop
 else (否)
 endif
 
-:计算重生位置;
-:spawnY = fallbackY + 300;
-:重置状态;
-:继续游戏;
-
-|状态管理|
-if (lives <= 0?) then (是)
-  :Player.spectator = true;
-  :GameState.phase = "gameover";
-  stop
-else (否)
-  :Player.invincible = true;
-  :Player.side 换边;
-  :Player.y = spawnY;
-endif
+:调用 respawnPlayer(player);
+:spawnY = player.getY() - 100;
+:player.side 换边;
+:player.y = spawnY;
+:player.invincible = true;
+:player.invincibleTimer = 2.0;
+:player.baseScore = player.score;
+:player.timeBonusScore = 0;
+:player.coinsCollected = 0;
+:重置摄像机位置;
 
 |客户端表现|
 if (lives <= 0?) then (是)
@@ -50,8 +48,17 @@ if (lives <= 0?) then (是)
 else (否)
 endif
 
-:重置摄像机;
-:spawnCamY = spawnY - offset;
+:重置摄像机到重生位置;
+:继续渲染游戏画面;
 
 stop
+
+note right
+  【重要说明】流程已修正为与 DeathSystem.java 代码一致：
+  1. checkDeathLine() 仅检测死亡线，不直接修改 lives
+  2. applyDeath() 负责 lives-- 和状态判断
+  3. lives > 0 时调用 respawnPlayer() 复活
+  4. lives <= 0 时设置 spectator=true, active=false
+  5. checkAllDead() 由 PhysicsEngine.update() 在 applyDeath() 之后调用
+end note
 @enduml

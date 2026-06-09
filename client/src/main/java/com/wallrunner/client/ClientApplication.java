@@ -7,22 +7,41 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.PropertySource;
+
 /**
  * JavaFX 桌面客户端入口。
  *
  * 职责：
  * - 舞台初始化与场景切换。
  * - F11 全屏切换快捷键。
- * - 不处理业务逻辑（委托给 Controller）。
+ * - Spring DI 容器初始化（与 server 端统一使用 Spring 构造器注入）。
  *
  * 扩展预留：
  * - 主题切换（深色/浅色）通过 CSS 文件动态加载实现。
  */
+@ComponentScan(basePackages = "com.wallrunner.client")
+@PropertySource("classpath:client.properties")
 public class ClientApplication extends Application {
 
+    private static ApplicationContext context;
     private static Stage primaryStage;
     private static final double DEFAULT_WIDTH = 640;
     private static final double DEFAULT_HEIGHT = 780;
+
+    @Override
+    public void init() {
+        try {
+            context = new AnnotationConfigApplicationContext(ClientApplication.class);
+        } catch (Exception e) {
+            System.err.println("[Client] Spring Context 初始化失败: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -38,6 +57,7 @@ public class ClientApplication extends Application {
     public static void switchScene(String fxmlPath) {
         try {
             FXMLLoader loader = new FXMLLoader(ClientApplication.class.getResource(fxmlPath));
+            loader.setControllerFactory(context::getBean);
             Parent root = loader.load();
 
             double w, h;
@@ -80,6 +100,10 @@ public class ClientApplication extends Application {
 
     public static Stage getPrimaryStage() {
         return primaryStage;
+    }
+
+    public static ApplicationContext getContext() {
+        return context;
     }
 
     public static void main(String[] args) {

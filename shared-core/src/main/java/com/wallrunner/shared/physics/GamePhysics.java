@@ -36,4 +36,8 @@ public class GamePhysics {
     public static void initJoiningPlayer(GameState state, Player player) {
         ENGINE.initJoiningPlayer(state, player);
     }
+
+    public static void respawnPlayer(GameState state, Player player) {
+        ENGINE.respawnPlayer(state, player);
+    }
 }

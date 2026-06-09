@@ -1,7 +1,7 @@
 @startuml
 skinparam classAttributeIconSize 0
 
-title WallRunner v3.0 — 物理引擎子系统类图
+title WallRunner v3.0 — 物理引擎子系统类图（已修正）
 
 package "com.wallrunner.shared.physics" {
     interface IPhysicsEngine {
@@ -30,12 +30,13 @@ package "com.wallrunner.shared.physics" {
     }
 
     class GamePhysics {
-        -ENGINE: IPhysicsEngine
-        +initState(GameState): void
-        +update(GameState): void
-        +handleInput(Player, String): void
-        +startGame(GameState): void
-        +initJoiningPlayer(GameState, Player): void
+        -ENGINE: IPhysicsEngine {static}
+        +initState(GameState): void {static}
+        +update(GameState): void {static}
+        +handleInput(Player, String): void {static}
+        +startGame(GameState): void {static}
+        +initJoiningPlayer(GameState, Player): void {static}
+        +respawnPlayer(GameState, Player): void {static}
     }
 }
 
@@ -68,29 +69,31 @@ package "com.wallrunner.shared.physics.subsystem" {
 }
 
 IPhysicsEngine <|.. PhysicsEngine
-PhysicsEngine --> IMovementSystem : uses
-PhysicsEngine --> ICollisionDetector : uses
-PhysicsEngine --> IObstacleManager : uses
-PhysicsEngine --> ICollectibleManager : uses
-PhysicsEngine --> ICameraSystem : uses
-PhysicsEngine --> IKnockbackSystem : uses
-PhysicsEngine --> IInvincibilitySystem : uses
-PhysicsEngine --> IDeathSystem : uses
-PhysicsEngine --> IScoreCalculator : uses
-PhysicsEngine --> IDifficultyManager : uses
-PhysicsEngine --> IPlayerCollisionResolver : uses
-PhysicsEngine --> IInputHandler : uses
 
-GamePhysics ..> PhysicsEngine : delegates
+PhysicsEngine *-- IMovementSystem : composition
+PhysicsEngine *-- ICollisionDetector : composition
+PhysicsEngine *-- IObstacleManager : composition
+PhysicsEngine *-- ICollectibleManager : composition
+PhysicsEngine *-- ICameraSystem : composition
+PhysicsEngine *-- IKnockbackSystem : composition
+PhysicsEngine *-- IInvincibilitySystem : composition
+PhysicsEngine *-- IDeathSystem : composition
+PhysicsEngine *-- IScoreCalculator : composition
+PhysicsEngine *-- IDifficultyManager : composition
+PhysicsEngine *-- IPlayerCollisionResolver : composition
+PhysicsEngine *-- IInputHandler : composition
+PhysicsEngine --> GameEventBus : uses
+
+GamePhysics ..> PhysicsEngine : delegates {static proxy}
 
 note right of PhysicsEngine
-  Facade + 组合模式
-  12个子系统通过接口解耦
+  组合模式：13个字段（12子系统+eventBus）
+  均通过构造器注入，生命周期同步
 end note
 
 note right of GamePhysics
-  兼容门面（Facade）
-  向后兼容v2.0调用方
-  @deprecated
+  静态代理（Static Proxy）/ 兼容门面
+  向后兼容v2.0的静态方法调用
+  所有方法委托给静态持有的ENGINE实例
 end note
 @enduml

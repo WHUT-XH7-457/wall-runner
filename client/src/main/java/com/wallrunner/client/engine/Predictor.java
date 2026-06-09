@@ -4,6 +4,8 @@ import com.wallrunner.shared.entity.GameState;
 import com.wallrunner.shared.entity.Player;
 import com.wallrunner.shared.physics.GamePhysics;
 
+import org.springframework.stereotype.Component;
+
 import static com.wallrunner.shared.constants.GameConstants.GRAVITY;
 
 /**
@@ -14,6 +16,7 @@ import static com.wallrunner.shared.constants.GameConstants.GRAVITY;
  * 
  * UML 建模意义：IPredictor 的具体实现。
  */
+@Component
 public class Predictor implements IPredictor {
 
     @Override

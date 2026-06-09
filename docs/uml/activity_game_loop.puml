@@ -1,8 +1,7 @@
 @startuml
 
-title WallRunner v3.0 — 游戏主循环泳道图
+title WallRunner v3.0 — 游戏主循环活动图（已修正：串行流程）
 
-|主控调度|
 start
 :获取 activePlayers;
 if (activePlayers为空?) then (是)
@@ -12,34 +11,44 @@ else (否)
 endif
 :frames++;
 
-|环境管理|
-:updateObstacles();
-:checkSpawn();
-:checkDeathLine();
-:checkAllDead();
-:applyTimeBonus();
-:recalculateScores();
-:updateDifficulty();
-:updateCollectibles();
+partition "步骤1: 环境管理" {
+  :updateObstacles();
+  :checkSpawn();
+  :checkDeathLine();
+  :checkAllDead();
+  :applyTimeBonus();
+  :recalculateScores();
+  :updateDifficulty();
+  :updateCollectibles();
+}
 
-|物理运动|
-:processKnockback(每个玩家);
-:processInvincibility(每个玩家);
-:updatePlayerMovement(每个玩家);
-:updatePlayerCameras();
-:updateDisplayCamera();
+partition "步骤2: 物理运动" {
+  :processKnockback(每个玩家);
+  :processInvincibility(每个玩家);
+  :updatePlayerMovement(每个玩家);
+  :updatePlayerCameras();
+  :updateDisplayCamera();
+}
 
-|碰撞交互|
-:检测玩家间碰撞;
-if (发生碰撞?) then (是)
-  :resolvePlayerCollision();
-  if (一方跳跃?) then (是)
-    :applyKnockback();
+partition "步骤3: 碰撞交互" {
+  :检测玩家间碰撞;
+  if (发生碰撞?) then (是)
+    :resolvePlayerCollision();
+    if (一方跳跃?) then (是)
+      :applyKnockback();
+    else (否)
+      :overlap分离;
+    endif
   else (否)
-    :overlap分离;
   endif
-else (否)
-endif
+}
 
 stop
+
+note right
+  【重要说明】本活动图展示 PhysicsEngine.update() 的串行执行流程。
+  代码中所有步骤依次执行，无多线程/并行处理。
+  原 fork/join 符号已移除，避免误导读者认为存在并发。
+  各分区仅用于逻辑分组，不代表并行执行。
+end note
 @enduml

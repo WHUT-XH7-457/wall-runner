@@ -1,7 +1,7 @@
 @startuml
 autonumber
 
-title WallRunner v3.0 — Dedicated模式状态同步时序图
+title WallRunner v3.0 — Dedicated模式状态同步时序图（已修正）
 
 actor "客户端A" as C1
 actor "客户端B" as C2
@@ -9,6 +9,7 @@ participant "WebSocketClientService" as WS1
 participant "WebSocketClientService" as WS2
 participant "GameWebSocketHandler" as GWH
 participant "DedicatedService" as DS
+participant "GamePhysics" as GP
 participant "PhysicsEngine" as PE
 participant "StateManager" as SM1
 participant "StateManager" as SM2
@@ -18,11 +19,17 @@ participant "Renderer" as R2
 C1 -> WS1 : sendInput("jump")
 WS1 -> GWH : WebSocket msg (type=input)
 GWH -> DS : onClientInput(session, "jump")
-DS -> PE : handleInput(player, "jump")
-PE --> DS : player state updated
+DS -> GP : handleInput(player, "jump")
+GP -> PE : handleInput(player, "jump")
+PE --> GP : player state updated
+GP --> DS : done
+
 DS -> DS : update() [8ms tick]
-DS -> PE : update(gameState)
-PE --> DS : full GameState
+DS -> GP : update(gameState)
+GP -> PE : update(gameState)
+PE --> GP : full GameState
+GP --> DS : done
+
 DS -> GWH : broadcastState()
 GWH -> WS1 : send state JSON
 GWH -> WS2 : send state JSON
@@ -43,5 +50,11 @@ end note
 note right of DS
   8ms tick 物理
   16ms 广播 STATE
+end note
+
+note right of GP
+  GamePhysics 作为静态代理
+  所有调用委托给 PhysicsEngine
+  保持与v2.0的向后兼容
 end note
 @enduml

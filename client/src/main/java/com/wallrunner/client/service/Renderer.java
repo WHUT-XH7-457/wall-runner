@@ -11,6 +11,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -23,6 +25,7 @@ import java.util.List;
  * - 支持粒子特效（跳跃尾迹）。
  * - 预留：可收集物渲染、特效渲染、技能可视化。
  */
+@Component
 public class Renderer implements IRenderer {
 
     private Canvas canvas;
@@ -31,6 +34,8 @@ public class Renderer implements IRenderer {
     private int frameCount = 0;
     private int currentFps = 0;
     private final List<Particle> particles = new ArrayList<>();
+
+    public Renderer() {}
 
     public void bindCanvas(Canvas canvas) {
         this.canvas = canvas;

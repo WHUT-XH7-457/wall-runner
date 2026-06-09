@@ -3,9 +3,9 @@ package com.wallrunner.client.controller;
 import com.wallrunner.client.ClientApplication;
 import com.wallrunner.client.service.IStateManager;
 import com.wallrunner.client.service.IWebSocketClient;
-import com.wallrunner.client.service.StateManager;
-import com.wallrunner.client.service.WebSocketClientService;
 import javafx.application.Platform;
+
+import org.springframework.stereotype.Component;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
@@ -21,6 +21,7 @@ import javafx.scene.input.ClipboardContent;
  * - 保存玩家名字到 Preferences。
  * - 所有模式切换必须先 setMode 再 switchScene，确保 GameController 读取正确模式。
  */
+@Component
 public class MenuController {
 
     @FXML private TextField playerNameField;
@@ -36,10 +37,6 @@ public class MenuController {
 
     private final IWebSocketClient wsService;
     private final IStateManager stateManager;
-
-    public MenuController() {
-        this(WebSocketClientService.getInstance(), StateManager.getInstance());
-    }
 
     public MenuController(IWebSocketClient wsService, IStateManager stateManager) {
         this.wsService = wsService;

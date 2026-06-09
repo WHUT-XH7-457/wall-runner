@@ -2,8 +2,9 @@ package com.wallrunner.client.controller;
 
 import com.wallrunner.client.ClientApplication;
 import com.wallrunner.client.service.IWebSocketClient;
-import com.wallrunner.client.service.WebSocketClientService;
 import javafx.application.Platform;
+
+import org.springframework.stereotype.Component;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
@@ -25,6 +26,7 @@ import java.util.prefs.Preferences;
  * - 角色颜色调色板选择。
  * - 预留：主题切换（深色/浅色）接口。
  */
+@Component
 public class SettingsController {
 
     @FXML private TextField nameField;
@@ -58,10 +60,6 @@ public class SettingsController {
 
     private final IWebSocketClient wsService;
     private final Preferences prefs;
-
-    public SettingsController() {
-        this(WebSocketClientService.getInstance());
-    }
 
     public SettingsController(IWebSocketClient wsService) {
         this.wsService = wsService;

@@ -1,5 +1,7 @@
 package com.wallrunner.client.service;
 
+import org.springframework.stereotype.Component;
+
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
@@ -11,6 +13,7 @@ import java.util.function.Consumer;
  *
  * 原则：仅做调度器，不触碰游戏状态。
  */
+@Component
 public class GameLoopService implements IGameLoop {
 
     private final Timeline timeline;

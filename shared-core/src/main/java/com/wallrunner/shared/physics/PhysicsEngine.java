@@ -5,6 +5,7 @@ import com.wallrunner.shared.entity.Player;
 import com.wallrunner.shared.physics.subsystem.*;
 import com.wallrunner.shared.event.GameEventBus;
 import com.wallrunner.shared.event.PhaseChangeEvent;
+import com.wallrunner.shared.event.PlayerJumpEvent;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -86,15 +87,19 @@ public class PhysicsEngine implements IPhysicsEngine {
                 new CameraSystem(),
                 knockbackSystem,
                 new InvincibilitySystem(),
-                new DeathSystem(),
-                new ScoreSystem(),
+                new DeathSystem(eventBus),
+                new ScoreSystem(eventBus),
                 new DifficultyManager(),
-                new PlayerCollisionResolver(knockbackSystem),
+                new PlayerCollisionResolver(knockbackSystem, eventBus),
                 new InputHandler(),
                 eventBus
         );
     }
 
+/**
+     * 全新游戏初始化（menu / gameover → playing 时调用）。
+     * 所有玩家状态重置：位置、分数、生命、高度基准等全部归零。
+     */
     @Override
     public void initState(GameState state) {
         state.getObstacles().clear();
@@ -119,6 +124,9 @@ public class PhysicsEngine implements IPhysicsEngine {
         state.setNextCollectibleSpawnY(initCameraY - 200);
     }
 
+/**
+     * 全新局初始化：重置玩家所有状态，Y = 0, joinOffsetY = 0，高度从0开始累计。
+     */
     private void resetPlayer(Player p, int index, double initCameraY) {
         p.setActive(true);
         p.setSide((index % 2 == 0) ? "left" : "right");
@@ -230,6 +238,9 @@ public class PhysicsEngine implements IPhysicsEngine {
     @Override
     public void handleInput(Player player, String inputType) {
         inputHandler.handleInput(player, inputType);
+        if ("jump".equals(inputType)) {
+            eventBus.publish(new PlayerJumpEvent(player.getId(), player.getX(), player.getY()));
+        }
     }
 
     @Override
@@ -242,6 +253,14 @@ public class PhysicsEngine implements IPhysicsEngine {
         }
     }
 
+/**
+     * 新玩家加入房间时的初始化（多人模式中途加入）。
+     *
+     * 机制要点：
+     * - 与"完全死亡后重生"（GameController.onRestart）逻辑类似。
+     * - 从最末端活跃玩家处开始（Y = last.getY()），joinOffsetY 同步设置。
+     * - 新玩家高度从0开始累计，不继承之前任何玩家的进度。
+     */
     @Override
     public void initJoiningPlayer(GameState state, Player player) {
         List<Player> activePlayers = getActivePlayers(state);
@@ -270,6 +289,48 @@ public class PhysicsEngine implements IPhysicsEngine {
         player.setComboCount(0);
         player.setCollectibleType("");
         player.setCollectibleCount(0);
+    }
+
+    /**
+     * 完全死亡后重生（lives <= 0 → spectator 后手动触发）。
+     *
+     * 机制要点（与 initJoiningPlayer 区分）：
+     * - 重置分数：score = 0, baseScore = 0，高度重新累计。
+     * - 重生位置 = 最末端活跃玩家的 Y + 300（该玩家高度数值 -30）。
+     * - joinOffsetY 同步重置到重生位置，确保高度从该点重新开始计算。
+     */
+    @Override
+    public void respawnPlayer(GameState state, Player player) {
+        double fallbackY = 0;
+        for (Player p : state.getPlayers().values()) {
+            if (p.isActive() && p.getY() > fallbackY) {
+                fallbackY = p.getY();
+            }
+        }
+        double spawnY = fallbackY + 300;
+        player.setActive(true);
+        player.setLives(MAX_LIVES);
+        player.setScore(0);
+        player.setBaseScore(0);
+        player.setTimeBonusScore(0);
+        player.setCoinsCollected(0);
+        player.setJoinOffsetY(spawnY);
+        player.setY(spawnY);
+        player.setSide("left".equals(player.getSide()) ? "right" : "left");
+        player.setX("left".equals(player.getSide()) ? WALL_WIDTH + 5 : CANVAS_WIDTH - WALL_WIDTH - PLAYER_SIZE - 5);
+        player.setVy(0);
+        player.setBlocked(false);
+        player.setPaused(false);
+        player.setInvincible(true);
+        player.setInvincibleTimer(2.0);
+        player.setSpectator(false);
+        player.setKnockedBack(false);
+        player.setJumping(false);
+        player.setRotationAngle(0);
+        player.setTargetRotation(0);
+        double spawnCamY = spawnY - CANVAS_HEIGHT * CAMERA_OFFSET_RATIO;
+        player.setCameraY(spawnCamY);
+        player.setCameraTargetY(spawnCamY);
     }
 
     private List<Player> getActivePlayers(GameState state) {

@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallrunner.shared.entity.GameState;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
@@ -24,10 +27,8 @@ import java.util.function.Consumer;
  * - 心跳机制（每5秒 ping）。
  * - 单例模式，网络 I/O 与业务逻辑解耦。
  */
+@Service
 public class WebSocketClientService implements IWebSocketClient {
-
-    private static final WebSocketClientService INSTANCE = new WebSocketClientService();
-    public static WebSocketClientService getInstance() { return INSTANCE; }
 
     private final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -35,25 +36,25 @@ public class WebSocketClientService implements IWebSocketClient {
     private volatile WebSocket webSocket;
     private volatile boolean connected = false;
 
-    // 设置项
-    private String playerName = "玩家";
-    private boolean showFps = true;
-    private boolean soundEnabled = true;
-    private boolean predictionEnabled = true;
-    private boolean showNames = true;
+    // 设置项（外部化配置默认值，可被 Preferences 覆盖）
+    private String playerName;
+    private boolean showFps;
+    private boolean soundEnabled;
+    private boolean predictionEnabled;
+    private boolean showNames;
     private long latency = 0;
     private String currentRoomId;
     private String myId;
-    private double timeBonusInterval = 5.0;
-    private int timeBonusPoints = 10;
+    private double timeBonusInterval;
+    private int timeBonusPoints;
     private String fillColor = "";
     private String strokeColor = "";
-    private double strokeWidth = 0.6;
+    private double strokeWidth;
     private java.util.Timer heartbeatTimer;
 
     // 【跨设备联机】服务器地址配置，默认 localhost，可改为局域网 IP
-    private String serverAddress = "localhost";
-    private int serverPort = 8080;
+    private String serverAddress;
+    private int serverPort;
 
     // 纯内存 clientId，每个进程独立
     private final String clientId = UUID.randomUUID().toString();
@@ -63,7 +64,28 @@ public class WebSocketClientService implements IWebSocketClient {
     private Consumer<Map<String, Object>> onMessage;
     private final List<Map<String, Object>> pendingMessages = new ArrayList<>();
 
-    private WebSocketClientService() {}
+    public WebSocketClientService(
+            @Value("${client.default.player-name:玩家}") String playerName,
+            @Value("${client.default.show-fps:true}") boolean showFps,
+            @Value("${client.default.sound-enabled:true}") boolean soundEnabled,
+            @Value("${client.default.prediction-enabled:true}") boolean predictionEnabled,
+            @Value("${client.default.show-names:true}") boolean showNames,
+            @Value("${client.default.time-bonus-interval:5.0}") double timeBonusInterval,
+            @Value("${client.default.time-bonus-points:10}") int timeBonusPoints,
+            @Value("${client.default.stroke-width:0.6}") double strokeWidth,
+            @Value("${client.server.address:localhost}") String serverAddress,
+            @Value("${client.server.port:8080}") int serverPort) {
+        this.playerName = playerName;
+        this.showFps = showFps;
+        this.soundEnabled = soundEnabled;
+        this.predictionEnabled = predictionEnabled;
+        this.showNames = showNames;
+        this.timeBonusInterval = timeBonusInterval;
+        this.timeBonusPoints = timeBonusPoints;
+        this.strokeWidth = strokeWidth;
+        this.serverAddress = serverAddress;
+        this.serverPort = serverPort;
+    }
 
     public String getClientId() { return clientId; }
 
