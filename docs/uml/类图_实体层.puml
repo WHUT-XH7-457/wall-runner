@@ -1,7 +1,7 @@
 @startuml
 skinparam classAttributeIconSize 0
 
-title WallRunner v3.0 — shared-core 实体层类图（已修正）
+title 实体层类图
 
 package "com.wallrunner.shared.entity" {
     interface IEntity {
@@ -85,20 +85,4 @@ GameState "1" *-- "0..*" Player : contains
 GameState "1" *-- "0..*" Obstacle : contains
 GameState "1" *-- "0..*" Collectible : contains
 
-note right of Player
-  纯POJO，无业务逻辑
-  可被Jackson序列化
-  状态通过布尔字段隐式表达：
-  jumping, knockedBack, returningToWall,
-  active, spectator, blocked, paused
-end note
-
-note right of GameState
-  聚合根（Aggregate Root）
-  线程安全集合：
-  - players: ConcurrentHashMap
-  - obstacles: CopyOnWriteArrayList
-  - collectibles: CopyOnWriteArrayList
-  - activeEffects: CopyOnWriteArrayList
-end note
 @enduml

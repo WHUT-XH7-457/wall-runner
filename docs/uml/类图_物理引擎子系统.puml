@@ -1,7 +1,7 @@
 @startuml
 skinparam classAttributeIconSize 0
 
-title WallRunner v3.0 — 物理引擎子系统类图（已修正）
+title 物理引擎子系统类图
 
 package "com.wallrunner.shared.physics" {
     interface IPhysicsEngine {
@@ -86,14 +86,4 @@ PhysicsEngine --> GameEventBus : uses
 
 GamePhysics ..> PhysicsEngine : delegates {static proxy}
 
-note right of PhysicsEngine
-  组合模式：13个字段（12子系统+eventBus）
-  均通过构造器注入，生命周期同步
-end note
-
-note right of GamePhysics
-  静态代理（Static Proxy）/ 兼容门面
-  向后兼容v2.0的静态方法调用
-  所有方法委托给静态持有的ENGINE实例
-end note
 @enduml

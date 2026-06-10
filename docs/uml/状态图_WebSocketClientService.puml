@@ -1,0 +1,82 @@
+@startuml
+skinparam state {
+    BackgroundColor<<initial>> LightGreen
+    BackgroundColor<<final>> LightCoral
+    BackgroundColor<<error>> LightYellow
+}
+
+title WebSocketClientService 状态机
+
+[*] --> 已断开 : 构造器初始化
+
+state 已断开 {
+    已断开 : entry / webSocket=null, connected=false\nmyId=null, currentRoomId=null\npendingMessages.clear（）
+}
+
+已断开 --> 连接中 : connect（uri） 调用
+
+state 连接中 {
+    连接中 : do / httpClient.newWebSocketBuilder（）.buildAsync（）
+    连接中 : 正在建立 WebSocket 连接...
+}
+
+连接中 --> 已连接 : onOpen [连接成功]\n startHeartbeat（）, connected=true
+连接中 --> 已断开 : onError [连接失败]\n onConnectionError.accept（msg）, connected=false
+
+state 已连接 {
+    已连接 : entry / 启动心跳定时器 （5秒 ping）\n 输出 "Connected, clientId=xxx"
+    已连接 : do / 维持心跳，接收消息分片重组
+    已连接 : 可接收: state / message / pong / error
+}
+
+已连接 --> 注册中 : joinDedicated（name）\n send（mode_select, dedicated）
+已连接 --> 注册中 : createRoom（name） / joinRoom（roomId, name）\n send（mode_select, relay）
+
+state 注册中 {
+    注册中 : do / 等待服务器确认消息
+    注册中 : 服务器返回: playerId, roomId, 初始 GameState
+}
+
+注册中 --> 游戏中 : [收到 server_accept]\n myId=playerId, currentRoomId=roomId\n onStateReceived.accept（initialState）
+注册中 --> 已连接 : [注册失败]\n onMessage.accept（errorMsg）
+
+state 游戏中 {
+    state "游玩中" as 游玩中 {
+        游玩中 : do / 每帧发送 sendInput（action）\n onStateReceived 更新本地状态
+    }
+    state "观战中" as 观战中 {
+        观战中 : do / 仅接收状态更新\n 不发送输入
+    }
+    [*] --> 游玩中 : 初始状态
+    游玩中 --> 观战中 : [lives <= 0]\n 本地死亡, spectator=true
+    观战中 --> 游玩中 : onRestart（）\n sendDisconnect + 重新 joinDedicated
+}
+
+游戏中 --> 断开中 : sendDisconnect（） / disconnect（）\n 主动返回主菜单
+游戏中 --> 断开中 : [连接异常断开]\n onError, connected=false
+
+state 断开中 {
+    断开中 : entry / stopHeartbeat（）\n ws.sendClose（NORMAL_CLOSURE， "client leave"）
+    断开中 : do / 等待关闭确认
+}
+
+断开中 --> 已断开 : onClose [关闭完成]\n webSocket=null, myId=null\n currentRoomId=null, pendingMessages.clear（）
+断开中 --> 已断开 : [超时/异常]\n 强制清理资源
+
+已断开 --> [*] : 应用退出
+
+note right of 已连接
+  心跳机制：每 5 秒发送 ping
+  服务器回复 pong 计算 latency
+  消息分片：HttpClient.WebSocket 对
+  大 JSON 拆分为多帧，需重组
+end note
+
+note right of 游戏中
+  网络模式：
+  - Dedicated: 服务器权威状态同步
+  - Relay: 客户端主机状态转发
+  输入预测：predictionEnabled 时
+  本地预测 + 服务器回滚
+end note
+@enduml

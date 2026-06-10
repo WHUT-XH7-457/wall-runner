@@ -2,8 +2,11 @@
 left to right direction
 skinparam packageStyle rectangle
 skinparam linetype ortho
+skinparam nodesep 80      ' 增大同级节点水平间距
+skinparam ranksep 60      ' 增大层与层之间的垂直间距
+skinparam padding 20      ' 整体内边距
 
-title WallRunner v3.0 — 房间管理用例图
+title 房间管理用例图
 
 actor "房主" as Host
 actor "访客" as Guest
@@ -37,8 +40,4 @@ Server --> UC_R6
 Server --> UC_R8
 Server --> UC_R9
 
-note right of UC_R7
-  8组预设颜色
-  服务器自动分配不重复颜色
-end note
 @enduml

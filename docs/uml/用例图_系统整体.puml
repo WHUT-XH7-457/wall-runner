@@ -2,8 +2,11 @@
 left to right direction
 skinparam packageStyle rectangle
 skinparam linetype ortho
+skinparam nodesep 80      ' 增大同级节点水平间距
+skinparam ranksep 60      ' 增大层与层之间的垂直间距
+skinparam padding 20      ' 整体内边距
 
-title WallRunner v3.0 — 系统整体用例图（已修正）
+title 系统整体用例图
 
 actor "玩家" as Player
 actor "房主" as Host
@@ -37,6 +40,7 @@ Player --> UC1
 Player --> UC2
 Player --> UC5
 Player --> UC6
+Player --> UC7
 Player --> UC8
 Player --> UC9
 Player --> UC10
@@ -46,14 +50,4 @@ Guest --> UC4
 Guest --> UC5
 Guest --> UC6
 
-note right of UC8
-  跳跃玩家撞击非跳跃玩家
-  触发击退+旋转+无敌
-  （独立用例，与跳跃换墙无扩展关系）
-end note
-
-note right of UC12
-  死亡后自动切换观战视角
-  跟随最靠前存活玩家
-end note
 @enduml

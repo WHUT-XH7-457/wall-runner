@@ -1,0 +1,91 @@
+@startuml
+skinparam state {
+    BackgroundColor<<initial>> LightGreen
+    BackgroundColor<<final>> LightCoral
+    BackgroundColor<<running>> LightBlue
+}
+
+title PhysicsEngine 状态机
+
+[*] --> 未初始化 : 构造器注入 12 个子系统
+
+state 未初始化 {
+    未初始化 : 子系统已注入但未初始化\n GameState 未绑定
+    未初始化 : 可调用: createDefault(eventBus) 工厂方法
+}
+
+未初始化 --> 已初始化 : initState(GameState)\n 清空 obstacles, collectibles\n frames=0, phase="menu"\n difficultyLevel=1\n 重置所有玩家状态
+
+state 已初始化 {
+    已初始化 : entry / state.phase = "menu"\n 玩家位置重置到初始墙边\n score=0, lives=MAX_LIVES\n cameraY=initCameraY
+    已初始化 : 等待游戏开始指令
+}
+
+已初始化 --> 运行中 : startGame(GameState)\n[phase == "menu" 或 "gameover"]\n initState(state)\n phase="playing"\n 发布 PhaseChangeEvent(menu 到 playing)
+
+state 运行中 <<running>> {
+    state "Tick 循环" as TICK循环 {
+        TICK循环 : do / 每帧执行 update（） 完整流程:
+        TICK循环 : 1. obstacleManager.updateObstacles（）
+        TICK循环 : 2. knockbackSystem.processKnockback（）
+        TICK循环 : 3. invincibilitySystem.processInvincibility（）
+        TICK循环 : 4. movementSystem.updatePlayerMovement（）
+        TICK循环 : 5. playerCollisionResolver.resolvePlayerCollision（）
+        TICK循环 : 6. cameraSystem.updatePlayerCameras（）
+        TICK循环 : 7. cameraSystem.updateDisplayCamera（）
+        TICK循环 : 8. deathSystem.checkDeathLine（）
+        TICK循环 : 9. deathSystem.checkAllDead（）
+        TICK循环 : 10. scoreCalculator.applyTimeBonus（）
+        TICK循环 : 11. scoreCalculator.recalculateScores（）
+        TICK循环 : 12. obstacleManager.checkSpawn（）
+        TICK循环 : 13. difficultyManager.updateDifficulty（）
+        TICK循环 : 14. collectibleManager.updateCollectibles（）
+    }
+    state "处理输入" as 处理输入 {
+        处理输入 : handleInput(Player, inputType)\n inputHandler.handleInput（）\n 若 jump: 发布 PlayerJumpEvent
+    }
+    [*] --> TICK循环 : 自动每帧
+    TICK循环 --> 处理输入 : [玩家输入事件]
+    处理输入 --> TICK循环 : 输入处理完成
+}
+
+运行中 --> 暂停 : [系统暂停/玩家暂停]\n 暂停玩家移动更新\n 摄像机暂停跟随
+
+state 暂停 {
+    暂停 : 所有 paused=true 的玩家\n 停止运动更新\n 碰撞检测跳过
+    暂停 : 未暂停玩家继续运行
+}
+
+暂停 --> 运行中 : [resume]\n paused=false
+
+运行中 --> 游戏结束 : checkAllDead（） [全部玩家死亡]\n phase="gameover"\n 发布 PhaseChangeEvent(playing 到 gameover)
+
+state 游戏结束 <<final>> {
+    游戏结束 : entry / phase="gameover"\n 停止障碍物生成\n 停止难度递增
+    游戏结束 : 等待 restart 指令
+}
+
+游戏结束 --> 已初始化 : startGame(GameState)\n 重新 initState（）\n phase="playing"
+游戏结束 --> [*] : [应用退出]
+
+未初始化 --> [*] : [应用退出]
+已初始化 --> [*] : [应用退出]
+运行中 --> [*] : [应用退出]
+暂停 --> [*] : [应用退出]
+
+note right of 运行中
+  组合模式调度：
+  PhysicsEngine 作为 Facade，
+  组合 12 个子系统，每帧
+  按固定顺序调用，通过
+  GameEventBus 解耦事件
+end note
+
+note right of 已初始化
+  初始化要点：
+  - 新局: 所有玩家从 Y=0 开始
+  - 中途加入: 从末端玩家 Y 开始
+  - 完全重生: 从末端+300px
+  - joinOffsetY 同步设置
+end note
+@enduml

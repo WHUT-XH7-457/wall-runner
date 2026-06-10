@@ -2,8 +2,11 @@
 left to right direction
 skinparam packageStyle rectangle
 skinparam linetype ortho
+skinparam nodesep 120      ' 增大同级节点水平间距
+skinparam ranksep 60      ' 增大层与层之间的垂直间距
+skinparam padding 20      ' 整体内边距
 
-title WallRunner v3.0 — 联机游戏用例图
+title 联机游戏用例图
 
 actor "客户端A" as C1
 actor "客户端B" as C2
@@ -22,7 +25,7 @@ rectangle "网络联机子系统" {
 
     UC_NET2 ..> UC_NET1 : <<include>>
     UC_NET3 ..> UC_NET1 : <<include>>
-    UC_NET4 ..> UC_NET2 : <<extend>>
+    UC_NET4 ..> UC_NET2 : <<extend>>　　　　　
     UC_NET5 ..> UC_NET3 : <<extend>>
     UC_NET7 ..> UC_NET6 : <<extend>>
 }
@@ -36,8 +39,4 @@ C2 --> UC_NET3
 DS --> UC_NET3 : 广播
 HC --> UC_NET8
 
-note right of UC_NET5
-  reconcile(): 本地玩家插值校正
-  其他玩家直接覆盖
-end note
 @enduml

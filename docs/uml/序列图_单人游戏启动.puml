@@ -1,7 +1,7 @@
 @startuml
 autonumber
 
-title WallRunner v3.0 — 单人游戏启动时序图
+title 单人游戏启动序列图
 
 actor 玩家 as Player
 participant "MenuController" as MC
@@ -12,24 +12,20 @@ participant "GameLoopService" as Loop
 participant "Renderer" as REN
 participant "InputService" as INP
 
-Player -> MC : 点击"单人游戏"
-MC -> GC : switchScene(game.fxml)
-GC -> GC : initialize()
-GC -> SM : initLocalState(name)
+Player -> MC : 点击“单人游戏”
+MC -> GC : switchScene（game．fxml）
+GC -> GC : initialize（）
+GC -> SM : initLocalState（name）
 SM -> SM : create GameState
 SM --> GC : state ready
-GC -> LPE : initState(state)
+GC -> LPE : initState（state）
 LPE --> GC : state initialized
-GC -> REN : bindCanvas(canvas)
-GC -> INP : attach(scene)
-GC -> Loop : setOnTick(callback)
-GC -> Loop : start()
+GC -> REN : bindCanvas（canvas）
+GC -> INP : attach（scene）
+GC -> Loop : setOnTick（callback）
+GC -> Loop : start（）
 Loop --> GC : tick loop running
 GC --> MC : scene ready
 MC --> Player : 显示游戏画面
 
-note right of GC
-  所有服务通过接口注入
-  默认构造器自动组装
-end note
 @enduml

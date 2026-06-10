@@ -1,0 +1,110 @@
+@startuml
+skinparam state {
+    BackgroundColor<<initial>> LightGreen
+    BackgroundColor<<final>> LightCoral
+    BackgroundColor<<danger>> LightYellow
+    BackgroundColor<<safe>> LightBlue
+}
+
+title Player 状态机
+
+[*] --> 未激活 : 构造器初始化
+
+state 未激活 {
+    未激活 : active=false, spectator=false\nlives=MAX_LIVES, score=0
+}
+
+未激活 --> 贴墙待机 : initState() / resetPlayer()\n或 initJoiningPlayer()\n active=true, side=left/right
+未激活 --> 观战 : applyDeath() [lives <= 0]\n spectator=true
+
+state 贴墙待机 <<initial>> {
+    贴墙待机 : jumping=false, vy=0\n 贴墙攀爬: y -= climbSpeed\n blocked=true 时停止攀爬\n 摄像机跟随: cameraY = y - offset
+}
+
+贴墙待机 --> 跳跃中 : handleInput("jump")\n jumping=true, vy=0\n 发布 PlayerJumpEvent
+贴墙待机 --> 被击退 : [玩家碰撞 & 被击退]\n applyKnockback()
+贴墙待机 --> 无敌中 : respawnPlayer()\n invincible=true, timer=2.0s
+
+state 跳跃中 {
+    跳跃中 : do / x += JUMP_SPEED (向对侧墙)\n vy += GRAVITY, y += vy\n 旋转: rotationAngle 向 targetRotation 逼近
+}
+
+跳跃中 --> 贴墙待机 : [到达对侧墙]\n side 翻转, jumping=false\n vy=0, x=墙边缘
+跳跃中 --> 被击退 : [障碍物碰撞 & 被击退]\n或 [玩家碰撞 & 被击退]\n applyKnockback()
+跳跃中 --> 死亡 : [y > deathLine]\n applyDeath(): lives--
+
+state 被击退 <<danger>> {
+    被击退 : entry / knockedBack=true\n knockbackTimer=KNOCKBACK_DURATION\n vy=KNOCKBACK_VY, x=墙边缘 + push
+    被击退 : do / 阶段1: 自由落体 (timer > delay)\n vy += KNOCKBACK_GRAVITY, y += vy
+    被击退 : do / 阶段2: 返回墙体 (timer <= delay)\n returningToWall=true\n x 向目标墙平滑移动
+    被击退 : rotationAngle 向 targetRotation 旋转
+}
+
+被击退 --> 返回墙体 : [timer <= KNOCKBACK_RETURN_DELAY]\n returningToWall=true
+被击退 --> 贴墙待机 : [回到墙边 | timer <= 0]\n endKnockback(): knockedBack=false\n returningToWall=false, vy=0\n rotationAngle=0
+
+state 返回墙体 {
+    返回墙体 : do / x 向目标墙移动\n rotationAngle 逐渐归零
+}
+
+返回墙体 --> 贴墙待机 : [x 到达墙边缘]\n endKnockback()
+
+state 无敌中 <<safe>> {
+    无敌中 : entry / invincible=true\n invincibleTimer=2.0s (复活) 或 2.5s (击退)
+    无敌中 : do / invincibleTimer -= 0.016/帧\n 免疫所有碰撞伤害
+    无敌中 : COLLECTIBLE_A: powerUpTimer 同步递减
+}
+
+无敌中 --> 贴墙待机 : [invincibleTimer <= 0]\n invincible=false\n 清除 COLLECTIBLE_A 效果
+无敌中 --> 跳跃中 : handleInput("jump") [无敌中仍可跳跃]
+无敌中 --> 被击退 : [玩家碰撞] [无敌不免疫击退]
+
+state 死亡 {
+    死亡 : entry / lives--\n 若 lives > 0: 发布 PlayerDeathEvent(lives, score)\n 若 lives <= 0: 发布 PlayerDeathEvent(0, score)\n highScore = max(highScore, score)
+}
+
+死亡 --> 贴墙待机 : [lives > 0]\n respawnPlayer(): y -= 100, 换边\n invincible=true, timer=2.0s
+死亡 --> 观战 : [lives <= 0]\n active=false, spectator=true
+
+state 观战 <<final>> {
+    观战 : active=false, spectator=true\n 仅观察其他玩家\n 不接收输入，不参与碰撞
+    观战 : 可手动触发 respawnPlayer()\n 完全重生: score=0, baseScore=0\n y = 最末端玩家 Y + 300
+}
+
+观战 --> 未激活 : [游戏结束]\n 所有玩家 spectator
+观战 --> 贴墙待机 : respawnPlayer() [手动重生]\n active=true, spectator=false\n lives=MAX_LIVES, invincible=true
+
+state 暂停 {
+    暂停 : paused=true\n 停止移动更新\n 摄像机暂停跟随
+}
+
+暂停 --> 贴墙待机 : [resume]\n paused=false
+
+贴墙待机 --> 暂停 : [pause 输入/系统暂停]
+跳跃中 --> 暂停 : [pause 输入/系统暂停]
+被击退 --> 暂停 : [pause 输入/系统暂停]
+无敌中 --> 暂停 : [pause 输入/系统暂停]
+
+note right of 贴墙待机
+  攀爬机制：
+  - 贴墙时自动向上攀爬
+  - blocked=true 时停止
+  - 碰撞障碍物可能 blocked
+  - 收集 COLLECTIBLE_B 加速攀爬
+end note
+
+note right of 被击退
+  击退两阶段：
+  1. 自由落体：被弹飞后下落
+  2. 返回墙体：自动向墙移动
+  最终回到墙边恢复 贴墙待机
+end note
+
+note right of 死亡
+  死亡机制：
+  - 掉出死亡线: y > cameraY + height + offset
+  - 丢心复活: 保留高度，向前推进 100px
+  - 完全死亡: 变为 观战
+  - 可手动完全重生（从末端+300px）
+end note
+@enduml

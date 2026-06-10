@@ -1,7 +1,7 @@
 @startuml
 skinparam classAttributeIconSize 0
 
-title WallRunner v3.0 — 客户端服务层类图（已修正）
+title 客户端服务层类图
 
 package "com.wallrunner.client.service" {
     interface IRenderer {
@@ -113,9 +113,4 @@ MenuController --> IWebSocketClient
 MenuController --> IStateManager
 SettingsController --> IWebSocketClient
 
-note right of GameController
-  依赖注入构造器（Spring @Component）
-  仅有一个带7个参数的构造器
-  无默认构造器，由Spring容器自动装配
-end note
 @enduml
