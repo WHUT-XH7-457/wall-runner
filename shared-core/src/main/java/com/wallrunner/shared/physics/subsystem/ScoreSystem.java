@@ -35,7 +35,7 @@ public class ScoreSystem implements IScoreCalculator {
             int total = p.getBaseScore() + Math.max(0, heightScore) + p.getTimeBonusScore() + p.getCoinsCollected();
             p.setScore(total);
             if (total != oldScore) {
-                eventBus.publish(new ScoreChangeEvent(p.getId(), oldScore, total));
+                eventBus.publish(new ScoreChangeEvent(p.getId(), total, total - oldScore));
             }
         }
     }
@@ -51,7 +51,7 @@ public class ScoreSystem implements IScoreCalculator {
                 if (!p.isPaused()) {
                     int oldScore = p.getScore();
                     p.setTimeBonusScore(p.getTimeBonusScore() + points);
-                    eventBus.publish(new ScoreChangeEvent(p.getId(), oldScore, p.getScore()));
+                    eventBus.publish(new ScoreChangeEvent(p.getId(), p.getScore(), p.getScore() - oldScore));
                 }
             }
             state.setTimeBonusAccumulator(state.getTimeBonusAccumulator() - interval);

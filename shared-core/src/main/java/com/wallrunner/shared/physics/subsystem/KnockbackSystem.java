@@ -73,7 +73,20 @@ public class KnockbackSystem implements IKnockbackSystem {
 
         boolean pushToLeft = "right".equals(attackerSide);
         double pushDir = pushToLeft ? -1.0 : 1.0;
-        double wallEdge = "left".equals(victim.getSide()) ? WALL_WIDTH : CANVAS_WIDTH - WALL_WIDTH - victim.getWidth();
+
+        // 修复：如果推向墙内，则反弹到墙外（避免穿墙）
+        boolean onLeft = "left".equals(victim.getSide());
+        if (onLeft && pushDir < 0) {
+            // 贴左墙，但向左推（入墙），反弹向右
+            pushDir = 1.0;
+            pushToLeft = false;
+        } else if (!onLeft && pushDir > 0) {
+            // 贴右墙，但向右推（入墙），反弹向左
+            pushDir = -1.0;
+            pushToLeft = true;
+        }
+
+        double wallEdge = onLeft ? WALL_WIDTH : CANVAS_WIDTH - WALL_WIDTH - victim.getWidth();
         double targetX = wallEdge + pushDir * KNOCKBACK_PUSH_X;
         targetX = Math.max(5, Math.min(targetX, CANVAS_WIDTH - victim.getWidth() - 5));
         victim.setX(targetX);

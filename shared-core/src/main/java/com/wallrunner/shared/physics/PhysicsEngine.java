@@ -44,6 +44,11 @@ public class PhysicsEngine implements IPhysicsEngine {
     private final IInputHandler inputHandler;
     private final GameEventBus eventBus;
 
+    // 复用缓冲区，避免每帧创建新对象
+    private final Map<String, Boolean> blockedMap = new HashMap<>(16);
+    private final List<Player> collidable = new ArrayList<>(8);
+    private final List<Player> activePlayersBuf = new ArrayList<>(8);
+
     public PhysicsEngine(IMovementSystem movementSystem,
                          ICollisionDetector collisionDetector,
                          IObstacleManager obstacleManager,
@@ -178,8 +183,8 @@ public class PhysicsEngine implements IPhysicsEngine {
         }
 
         // 3. 玩家移动与碰撞
-        Map<String, Boolean> blockedMap = new HashMap<>();
-        List<Player> collidable = new ArrayList<>();
+        blockedMap.clear();
+        collidable.clear();
         for (Player player : activePlayers) {
             if (!player.isPaused()) {
                 boolean blocked = movementSystem.updatePlayerMovement(player, state.getObstacles(), activePlayers);
@@ -191,11 +196,13 @@ public class PhysicsEngine implements IPhysicsEngine {
         }
 
         // 4. 玩家间碰撞
-        for (int i = 0; i < collidable.size(); i++) {
-            for (int j = i + 1; j < collidable.size(); j++) {
-                Player a = collidable.get(i);
+        int size = collidable.size();
+        for (int i = 0; i < size; i++) {
+            Player a = collidable.get(i);
+            if (a.isPaused()) continue;
+            for (int j = i + 1; j < size; j++) {
                 Player b = collidable.get(j);
-                if (a.isPaused() || b.isPaused()) continue;
+                if (b.isPaused()) continue;
                 if (playerCollisionResolver.checkPlayerCollision(a, b)) {
                     playerCollisionResolver.resolvePlayerCollision(a, b);
                 }
@@ -239,7 +246,7 @@ public class PhysicsEngine implements IPhysicsEngine {
     public void handleInput(Player player, String inputType) {
         inputHandler.handleInput(player, inputType);
         if ("jump".equals(inputType)) {
-            eventBus.publish(new PlayerJumpEvent(player.getId(), player.getX(), player.getY()));
+            eventBus.publish(new PlayerJumpEvent(player.getId(), player.getX(), player.getY(), player.getSide()));
         }
     }
 
@@ -334,11 +341,11 @@ public class PhysicsEngine implements IPhysicsEngine {
     }
 
     private List<Player> getActivePlayers(GameState state) {
-        List<Player> active = new ArrayList<>();
+        activePlayersBuf.clear();
         for (Player p : state.getPlayers().values()) {
-            if (p.isActive()) active.add(p);
+            if (p.isActive()) activePlayersBuf.add(p);
         }
-        return active;
+        return activePlayersBuf;
     }
 
     private static final java.util.Random RANDOM = new java.util.Random();

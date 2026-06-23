@@ -102,8 +102,14 @@ public class DeathSystem implements IDeathSystem {
 
     @Override
     public void checkAllDead(GameState state) {
-        boolean allDead = state.getPlayers().values().stream().noneMatch(Player::isActive);
-        if (allDead && !state.getPlayers().isEmpty()) {
+        boolean anyActive = false;
+        for (Player p : state.getPlayers().values()) {
+            if (p.isActive()) {
+                anyActive = true;
+                break;
+            }
+        }
+        if (!anyActive && !state.getPlayers().isEmpty()) {
             state.setPhase("gameover");
         }
     }
